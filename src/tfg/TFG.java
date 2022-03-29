@@ -6,8 +6,6 @@
 package tfg;
 
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -19,77 +17,102 @@ public class TFG {
      * @param args the command line arguments
      */
     
-    public static int maxPrimeTable = 20000;
+    //Se almacenará en el array primes los primos <= maxPrime
+    public static final int maxPrime = 20000;
     public static long[] primes;
-        
-    public static int maxATable = 9;
-    public static Phi[] PhiArray = new Phi[maxATable+1];
+
+    //Se almacenará en el array phiArray instancias de la clase Phi(a)
+    //con 0<=a<='maxA'. La principal utilidad de estas son sus tablas críticas
+    //que contienen información de Phi(x,a). Se obtendrán estos valores con la 
+    //función valueAtX(x).
+    public static final int maxA = 9;
+    public static Phi[] phiArray = new Phi[maxA+1];
     
     public static void main(String[] args) {
-        // TODO code application logic here
         
-        primes = eratosthenes(maxPrimeTable);
+        //Se generan los primos hasta maxPrime y se almacenan en primes
+        //usando la función eratosthenes. 
+        //Se generan y se guardan las instancias de Phi(a) en el array.
+        primes = eratosthenes(maxPrime);
+        for (int i=0; i<=maxA; i++) phiArray[i] = new Phi(i);
         
-        for (int i=0; i<=maxATable; i++) PhiArray[i] = new Phi(i);
-        
-        long x = (long) 1e8;
+        //Se evalúa la función mapes en 'x' y se saca el valor por pantalla.
+        long x = (long) 1e8; //En algún momento entre 4e8 y 5e8 empieza a dar valores incorrectos
         long pix=mapes(x);
         System.out.println(pix);
        
     }
     
+    //La función mapes calcula pi(x) usando el Método de Mapes.
     public static long mapes(long x){
     
+        //Se inicializan las variables antes de la primera iteración.
+        //y=0; M=0; i=a=pi(sqrt(x)); T_M(x,a)=0; phi=0
         long y=0;
-        BigInt M = new BigInt(0);
-        long sqrtX=intSqrt((int)x);
-        //int a = eratosthenes((int)sqrtX).length;
-        int a=0;
-        if(sqrtX<=maxPrimeTable){
-            for (int i=0; i<primes.length && primes[i]<=sqrtX; i++) a++;
-        } else{
-            System.out.println("Sorry, too big :(");        
-        }
+        BigInt M = new BigInt();
+        int a=(int) smallPi(intSqrt(x));
         int i=a;
-        long TM=0;
-        
+        long T_M=0;
         long phi=0;
        
-        long maxIter = (long) 1e6;
+        //Se aplica iteradamente el algoritmo de Mapes para calcular 
+        //el valor de y(:=phi(x,a)) un número finito de veces. Esto se hace por
+        //mantener cierto control del número de veces que se aplica, aunque se 
+        //podría usar un bucle while.
+        long maxIter = (long) 1e7;
         long j;
         for(j=1; j<=maxIter; j++){
+            //De forma opcional. Se saca por pantalla todos los valores calculados la iteracióna anterior.
+            //System.out.println("It:"+(j-1)+", y:"+y+", M:"+M.getM()+", i:"+i+", a:"+a+", T_M:"+T_M+", Phi:"+phi);
+
+            //Se calcula T_M(x,a).
+            //Se recogen excepciones en el caso en que T_M no se haya podido 
+            //calcular correctamente y así avisar al usuario.
             try {
-                TM=T(M,x,a);
+                T_M=T(M,x,a);
             } catch (Exception ex) {
                 System.out.println(ex);
-                return 0;
             }
-            //System.out.println("It:"+(j-1)+", y:"+y+", M:"+M.getM()+", i:"+i+", a:"+a+", TM:"+TM+", Phi:"+phi);
+            
+            //Se intenta calcular phi(T_M(x,a),i) mediante los valores en la 
+            //tabla crítica correspondiente o usando la fórmula de Lehmer invertida.
+            //En caso en que no se pueda por ninguno de estos métodos, la función
+            //PhiXA lanza una excepción, la cual se recoge y se procede según
+            //indica el algoritmo de Mapes.
             try{
-                phi = PhiXA(TM,i);
+                phi = PhiXA(T_M,i);
             }catch (Exception exPhi){
-                System.out.println(exPhi.getMessage());
+                //Puede usarse la excepción para que quede constancia al usuario
+                //de que no se ha podido calcular phi.
+                //System.out.println(exPhi.getMessage());
+                
+                //Se hace M+=1 y se elige i tal que 2^i|M. Además y+=T_M(x,a)
                 M.sum2Powi(0);
                 i=M.getPowOfMaxDiv();
-                try {
-                    y+=TM;
-                    TM=T(M,x,a);
-                    continue;
-                } catch (Exception exTM) {
-                    System.out.println(exTM);
-                    break;
-                }
+                y+=T_M;
+                
+                //En este momento debe empezar la siguiente iteración, por lo
+                //se usa continue
+                continue;
             }
+            //Como ha podido calcularse phi, se hace y+=phi(T_M(x,a),i)
+            //Además, se pone M+=2^i y se elige i tal que 2^i|M.
             y+=phi;
             M.sum2Powi(i);
             i=M.getPowOfMaxDiv();
+            
+            //En el caso en que M=2^a, se finaliza el cálulo de y(:=phi(x,a))
+            //por lo que se finalizan las iteraciones y se sale del bucle con break
             if(M.isPowA(a)) break;
         }
-        
-        System.out.println("It:"+(j)+", y:"+y+", M:"+M.getM()+", i:"+i+", a:"+a+", TM:"+TM+", Phi:"+phi);
 
+        //Se puede avisar al usuario en el caso en el que se alcance el máximo 
+        //de iteraciones para revisar el código(si procede) o aumentarlas.
+        //Además, se saca por pantalla el número necesitado como referencia.
         if(j>=maxIter-1) System.out.println("Reached maxIter");
         else System.out.println("Iterations: "+j);
+        
+        //Por último, se devuelve al usuario el valor pi(x)=phi(x,a)+a-1 
         return y+a-1;
         
     }
@@ -107,24 +130,19 @@ public class TFG {
             if(arrayM.get(posInMCounter)==i){
                 betaSum++;
                 primePowProd*=primes[i];
-                //System.out.println(primes[i]);
                 posInMCounter++;
             }
         }
         
-        //System.out.println("x:"+x);
-        //System.out.println("M:"+M.getM());
-        
         long T=x/primePowProd;
         T*=betaSum%2==0?1:-1;
         
-        //System.out.println("T:"+T);
         return T;
     }
     
     public static long PhiXA(long x ,int a) throws Exception{
     
-        if(a<=maxATable) return PhiArray[a].valueAtX(x);
+        if(a<=maxA) return phiArray[a].valueAtX(x);
         
         if(x==0) return 0;
         
@@ -133,7 +151,7 @@ public class TFG {
         if(a<primes.length){
             if(primes[a-1]<x){
                 if(x<Math.pow(primes[a], 4)){
-                    if(x<=maxPrimeTable){
+                    if(x<=maxPrime){
                         return PhiLehmer(x,a);
                     }
                 }
@@ -146,43 +164,53 @@ public class TFG {
     
     public static long PhiLehmer(long x, int a){
     
-        int z=intSqrt((int)x);
+        long b=smallPi(intSqrt(x));
+        /*int z=intSqrt((int)x);
         long b = 0;
-        for (int k=0; k<primes.length && primes[k]<=z; k++) b++;
+        for (int k=0; k<primes.length && primes[k]<=z; k++) b++;*/
         
-        int z1=intCbrt((int)x);
+        long c=smallPi(intCbrt(x));
+        /*int z1=intCbrt((int)x);
         long c=0;
-        for (int k=0; k<primes.length && primes[k]<=z1; k++) c++;
+        for (int k=0; k<primes.length && primes[k]<=z1; k++) c++;*/
         
-        long pix = 0;
-        for (int i=0; i<primes.length && primes[i]<=x; i++) pix++;
+        long pix=smallPi(x);
+        /*long pix = 0;
+        for (int i=0; i<primes.length && primes[i]<=x; i++) pix++;*/
                         
         long sum=pix-a+1;
         
         for (int i=a+1; i<=b; i++){
             long w=x/primes[i-1];
-            long piw = 0;
-            for (int k=0; k<primes.length && primes[k]<=w; k++) piw++;     
-            sum+=(piw-i+1);
+            /*long piw = 0;
+            for (int k=0; k<primes.length && primes[k]<=w; k++) piw++;  */   
+            sum+=(smallPi(w)-i+1);
             if(i<=c){
-                int zi=intSqrt((int)w);
-                long bi=0;                    
-                for (int k=0; k<primes.length && primes[k]<=zi; k++) bi++;     
+                //int zi=intSqrt((int)w);
+                long bi=smallPi(intSqrt((int)w));
+                /*long bi=0;                    
+                for (int k=0; k<primes.length && primes[k]<=zi; k++) bi++;     */
                 for (int j=i; j<=bi; j++){
-                    long wj=w/primes[j-1];
+                    /*long wj=w/primes[j-1];
                     long piwj=0;
-                    for (int k=0; k<primes.length && primes[k]<=wj; k++) piwj++;     
-                    sum+=(piwj-j+1);
+                    for (int k=0; k<primes.length && primes[k]<=wj; k++) piwj++;     */
+                    sum+=(smallPi(w/primes[j-1])-j+1);
                 }
             }
         }
         return sum; 
     }
     
-    public static int intSqrt(int x){
+    public static long smallPi(long x){
+        if (x>maxPrime) System.out.println("The value "+x+" is too big for smallPi");    
+        long pix=0;
+        for (int k=0; k<primes.length && primes[k]<=x; k++) pix++; 
+        return pix;
+    }
+    
+    public static int intSqrt(long x){
         // Base cases
-        if (x == 0 || x == 1)
-        return x;
+        if (x == 0 || x == 1) return (int)x;
 
         // Starting from 1, try all numbers until
         // i*i is greater than or equal to x.
@@ -195,13 +223,12 @@ public class TFG {
         return i - 1;
     }  
     
-    public static int intCbrt(int x){
+    public static int intCbrt(long x){
         // Base cases
-        if (x == 0 || x == 1)
-        return x;
+        if (x == 0 || x == 1) return (int)x;
 
         // Starting from 1, try all numbers until
-        // i*i is greater than or equal to x.
+        // i*i*i is greater than or equal to x.
         int i = 1, result = 1;
         while (result <= x)
         {
@@ -211,60 +238,6 @@ public class TFG {
         return i - 1;
     }
 
-    public static long P2(long x, int a) throws Exception{
-        int sqrtX = (int) Math.sqrt(x);
-        int b=0;
-        if (sqrtX <= maxPrimeTable){
-            for (int i=0; i<primes.length && primes[i]<=sqrtX; i++) b++;     
-        } else {
-            throw new Exception("P2 Exception");
-        }
-        double firstTerm = -((double)(b-a)*(b+a-1))/2;
-        double secondTerm=0;
-        for (int i=a+1; i<=b; i++){
-            long xDivPi=x/primes[i-1];
-            if (xDivPi <= maxPrimeTable){
-                for (int j=0; j<primes.length && primes[j]<=xDivPi; j++) secondTerm++;
-            } else {
-                throw new Exception("P2 Exception");
-            }
-        }
-        return (long) (firstTerm+secondTerm);
-        
-    }
-    
-    public static long P3(long x, int a) throws Exception{
-        long P3=0;
-        
-        int cubicRootX = (int) Math.cbrt(x);
-        int c=0;
-        if (cubicRootX <= maxPrimeTable){
-            for (int i=0; i<primes.length && primes[i]<=cubicRootX; i++) c++;     
-        } else {
-            throw new Exception("P3 Exception");
-        }
-        for (int i=a+1; i<=c; i++){
-            int sqrtXDivPi= (int) Math.sqrt(x/primes[i-1]);
-            int b=0;
-            if (sqrtXDivPi <= maxPrimeTable){
-                for (int j=0; j<primes.length && primes[j]<=sqrtXDivPi; j++) b++;     
-            } else {
-                throw new Exception("P3 Exception");
-            }
-            for (int j=1; j<=b; j++){
-                P3-=j-1;
-                int xDivPiPj=(int) ((double)x/((double) primes[i-1]*primes[j-1]));
-                if (xDivPiPj <= maxPrimeTable){
-                    for (int k=0; k<primes.length && primes[k]<=xDivPiPj; k++) P3++;     
-                } else {
-                    throw new Exception("P3 Exception");
-                }
-            }
-        }
-        
-        return P3;
-    }
-    
     public static long[] eratosthenes(int n){
         n-=n%2==0?1:0;
         int stop=(n-1)/2;
@@ -317,10 +290,8 @@ public class TFG {
             long p=primes[i];
             long p2=p*p;
             long start;
-           //System.out.println(p2);
             if(p2<m){
                 long q=2*p;
-                //System.out.println(m+""+q+""+m/q);
                 start=(m/q)*q+p;
                 if (start<m) start+=q;
             } else start=p2;
@@ -329,14 +300,10 @@ public class TFG {
             else {
                 int j=(int)Math.floor((start-m)/2)+1;
                 while(j<=length){
-                    //System.out.println(length);
                     isMult[j-1]=true;
                     j+=p;
                 }
             }
-            /*System.out.println(i);
-            int pos = (int)(i-m)/2;
-            isMult[pos]=true;*/
         }
         
         int primesCount=0;

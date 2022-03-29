@@ -23,7 +23,7 @@ public class Phi {
         generateTable();
     }
     
-    public long[] table(){
+    private long[] table(){
         return table;
     }
     
@@ -68,7 +68,7 @@ public class Phi {
         for (long p:firstAPrimes) phima*=(p-1);
     }
     
-    public long[] firstNPrimes(int n){
+    private long[] firstNPrimes(int n){
         
         int stop=(int) (12*(n*(Math.log(n)+boundC)));
         //System.out.println(stop);

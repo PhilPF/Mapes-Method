@@ -14,9 +14,13 @@ public class BigInt {
     
     private ArrayList<Integer> a;
     
-    public BigInt(long M){
+    public BigInt(){
+        a=new ArrayList();
+    }
+    
+    public BigInt(int M){
+        this();
         String strM = Long.toBinaryString(M);
-        a = new ArrayList<>();
         
         for (int i = strM.length()-1; i>=0; i--){
             if(strM.charAt(i)=='1') a.add(strM.length()-i-1);
