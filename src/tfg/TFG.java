@@ -77,10 +77,10 @@ public class TFG {
             //Se intenta calcular phi(T_M(x,a),i) mediante los valores en la 
             //tabla crítica correspondiente o usando la fórmula de Lehmer invertida.
             //En caso en que no se pueda por ninguno de estos métodos, la función
-            //PhiXA lanza una excepción, la cual se recoge y se procede según
+            //phixa lanza una excepción, la cual se recoge y se procede según
             //indica el algoritmo de Mapes.
             try{
-                phi = PhiXA(T_M,i);
+                phi = phixa(T_M,i);
             }catch (Exception exPhi){
                 //Puede usarse la excepción para que quede constancia al usuario
                 //de que no se ha podido calcular phi.
@@ -117,83 +117,93 @@ public class TFG {
         
     }
     
+    //La función T recibe como parámetros los valores M,x,a y devuelve T_M(x,a)
+    //Se lanza una excepción en el caso en que no pueda calcularse correctamente.
     public static long T(BigInt M, long x, int a) throws Exception{
-    
-        ArrayList<Integer> arrayM = M.getM(); 
+        
+        //Se inicializan los siguientes valores.
+        //En betaSum se almacenará beta_0+beta_1+...+beta_{a-1}
+        //Y en primePowProd p_1^{beta_0}+...+p_a^{beta_{a-1}}
         int betaSum = 0;
         long primePowProd = 1;
         
+        //Es necesario conocer los primos hasta a. 
+        //En caso contrario, se lanza una excepción.
         if(a>primes.length) throw new Exception("T Exception");
         
+        //El ínidice posInMCounter se inicializa a 0 y se usará para recorrer 
+        //los valores en M, puesto que este contiene solo los valores no nulos. 
         int posInMCounter = 0;
-        for (int i=0; i<a && posInMCounter<arrayM.size(); i++){
-            if(arrayM.get(posInMCounter)==i){
+        
+        //El siguiente bucle tiene longitud a, pero en caso en que el índice
+        //posInMCounter alcance la última posición posible en M, termina, puesto
+        //que los valores de beta_i restantes serán nulos.
+        for (int i=0; i<a && posInMCounter<M.size(); i++){
+            //Cada vez que se halle el valor i en el array de M, se suma 1 a 
+            //betaSum y se multiplica primePowProd por el primo p_{i+1};
+            if(M.get(posInMCounter)==i){
                 betaSum++;
                 primePowProd*=primes[i];
                 posInMCounter++;
             }
         }
         
+        //El valor que debe devolver T es la siguiente división entera.
         long T=x/primePowProd;
+        //Además, el signo de T puede determinarse con la paridad de betaSum.
         T*=betaSum%2==0?1:-1;
         
         return T;
     }
     
-    public static long PhiXA(long x ,int a) throws Exception{
+    //La función phixa recibe como parámetros los valores x, a y devuelve phi(x,a).
+    //Si se puede, devuelve el valor desde una de las tablas críticas.
+    //En caso contrario, se intenta calcular mediante la función phiLehmer.
+    //Si no puede calcularse mediante estos métodos, se lanza una excepción.
+    public static long phixa(long x ,int a) throws Exception{
     
+        //Se comprueba si el valor se halla en una tabla y en tal caso se devuelve.
         if(a<=maxA) return phiArray[a].valueAtX(x);
         
+        //Se devuelve el valor del caso trivial
         if(x==0) return 0;
         
-        if(x<0) return -PhiXA(-x,a);
+        //Para x<0 se sabe que phi(x,a)=-phi(-x,a)
+        if(x<0) return -phixa(-x,a);
         
+        //Las siguientes son las condiciones necesarias para poder aplicar la 
+        //fórmula inversa de Lehmer.
+        //Se ponen por separado para poder evaluar el caso primes[a-1]>=x a 1.
         if(a<primes.length){
             if(primes[a-1]<x){
                 if(x<Math.pow(primes[a], 4)){
                     if(x<=maxPrime){
-                        return PhiLehmer(x,a);
+                        return phiLehmer(x,a);
                     }
                 }
             } else return 1;
         }
         
+        //Si no se cumplen ninguna de las condiciones anteriores no puede
+        //calcularse phi(x,a), luego se lanza una excepción.
         throw new Exception("Phi Exception");
     
     }
     
-    public static long PhiLehmer(long x, int a){
+    public static long phiLehmer(long x, int a){
     
         long b=smallPi(intSqrt(x));
-        /*int z=intSqrt((int)x);
-        long b = 0;
-        for (int k=0; k<primes.length && primes[k]<=z; k++) b++;*/
-        
         long c=smallPi(intCbrt(x));
-        /*int z1=intCbrt((int)x);
-        long c=0;
-        for (int k=0; k<primes.length && primes[k]<=z1; k++) c++;*/
-        
         long pix=smallPi(x);
-        /*long pix = 0;
-        for (int i=0; i<primes.length && primes[i]<=x; i++) pix++;*/
                         
         long sum=pix-a+1;
         
         for (int i=a+1; i<=b; i++){
-            long w=x/primes[i-1];
-            /*long piw = 0;
-            for (int k=0; k<primes.length && primes[k]<=w; k++) piw++;  */   
+            long w=x/primes[i-1]; 
             sum+=(smallPi(w)-i+1);
             if(i<=c){
-                //int zi=intSqrt((int)w);
                 long bi=smallPi(intSqrt((int)w));
-                /*long bi=0;                    
-                for (int k=0; k<primes.length && primes[k]<=zi; k++) bi++;     */
                 for (int j=i; j<=bi; j++){
-                    /*long wj=w/primes[j-1];
-                    long piwj=0;
-                    for (int k=0; k<primes.length && primes[k]<=wj; k++) piwj++;     */
                     sum+=(smallPi(w/primes[j-1])-j+1);
                 }
             }

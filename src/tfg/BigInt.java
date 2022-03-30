@@ -31,6 +31,14 @@ public class BigInt {
         return a;
     }
     
+    public int get(int i){
+        return a.get(i);
+    }
+    
+    public int size(){
+        return a.size();
+    }
+    
     public void sum2Powi(int i){
         for(int j=0; j<a.size(); j++){
             if(a.get(j)==i){
