@@ -37,13 +37,14 @@ public class TFG {
         for (int i=0; i<=maxA; i++) phiArray[i] = new Phi(i);
         
         //Se evalúa la función mapes en 'x' y se saca el valor por pantalla.
-        long x = (long) 1e8; //En algún momento entre 4e8 y 5e8 empieza a dar valores incorrectos
+        long x = (long) 1e8; //A partir de 4e8=maxPrime^2, empieza a dar valores incorrectos.
         long pix=mapes(x);
         System.out.println(pix);
        
     }
     
     //La función mapes calcula pi(x) usando el Método de Mapes.
+    //El esquema del algoritmo está en la pág.30.
     public static long mapes(long x){
     
         //Se inicializan las variables antes de la primera iteración.
@@ -110,7 +111,7 @@ public class TFG {
         //de iteraciones para revisar el código(si procede) o aumentarlas.
         //Además, se saca por pantalla el número necesitado como referencia.
         if(j>=maxIter-1) System.out.println("Reached maxIter");
-        else System.out.println("Iterations: "+j);
+        //System.out.println("Iterations: "+j);
         
         //Por último, se devuelve al usuario el valor pi(x)=phi(x,a)+a-1 
         return y+a-1;
@@ -190,14 +191,26 @@ public class TFG {
     
     }
     
+    //La función phiLehmer recibe los valores x,a y calcula phi(x,a) usando la
+    //fórmula de Lehmer inversa. (No comprueba si puede hacerse o no, solo calcula)
     public static long phiLehmer(long x, int a){
     
+        //Se toma pix=pi(x), b=pi(sqrt(x)), c=pi(cbrt(x))
+        //Notar que se usa smallPi asumiendo que todos estos valores se hallan
+        //en la tabla primes.
+        long pix=smallPi(x);
         long b=smallPi(intSqrt(x));
         long c=smallPi(intCbrt(x));
-        long pix=smallPi(x);
-                        
+        
+        //Como phi(x,a)=pi(x)-a+1+P2(x,a)+P3(x,a), se inicializa 
+        //sum(:=phi(x,a)) a pi(x)-a+1 y más adelante se añadirán los términos restantes
         long sum=pix-a+1;
         
+        //Se calculan los valores de P2(x,a) y P3(x,a) de forma conjunta y se 
+        //añaden directamente a sum.
+        //La expresión siguiente se basa en las fórmulas:
+        //P2(x,a)=sum_{a<i<=b}{pi(x/p_i)-i+1}
+        //P3(x,a)=sum_{a<i<=c}sum_{1<=j<=bi}{pi(x/{p_i*p_j})-j+1}
         for (int i=a+1; i<=b; i++){
             long w=x/primes[i-1]; 
             sum+=(smallPi(w)-i+1);
@@ -211,43 +224,76 @@ public class TFG {
         return sum; 
     }
     
+    //La función smallPi recibe el valor x y devuelve la cantidad de primos <=x
+    //que se hallan en la tabla primes.
+    //Si x es mayor que maxPrime no se lanza ninguna excepción, pero se avisa al 
+    //usuario por pantalla de que el valor podría ser incorrecto.
     public static long smallPi(long x){
-        if (x>maxPrime) System.out.println("The value "+x+" is too big for smallPi");    
+        if (x>maxPrime) System.out.println("WARNING:Possible wrong output.\nThe value "+x+" is too big for smallPi");    
         long pix=0;
         for (int k=0; k<primes.length && primes[k]<=x; k++) pix++; 
         return pix;
     }
     
-    public static int intSqrt(long x){
-        // Base cases
-        if (x == 0 || x == 1) return (int)x;
+    /**
+     * La función eratosthenesInterval usa el algoritmo detallado en la pág.5
+     * para devolver los números en el intervalo [m,n] cribados con prime.
+     * Notar que los valores no son necesariamente primos. Son aquellos que no
+     * son múltiplos de los valores en prime.
+     * 
+     * @param m Extremo inferior del intervalo
+     * @param n Extremos superior del inervalo
+     * @param prime Array con los primos que debe usar la criba
+     * @return Array de números en [m,n] cribado con primes
+     */
+    public static long[] eratosthenesInterval(long m, long n, long[] prime){
+        
+        m+=m%2==0?1:0;
+        n-=n%2==0?1:0;
+        
+        int length = (int) (n-m+2)/2;
+        //TODO: Usar BitSet para ahorrar memoria 
+        boolean[] isMult = new boolean[length];
+        
+        for(int i=0; i<length; i++) isMult[i]=false;
+        
+        for (int i=1; i<prime.length; i++){
+            long p=prime[i];
+            long p2=p*p;
+            long start;
+            if(p2<m){
+                long q=2*p;
+                start=(m/q)*q+p;
+                if (start<m) start+=q;
+            } else start=p2;
 
-        // Starting from 1, try all numbers until
-        // i*i is greater than or equal to x.
-        int i = 1, result = 1;
-        while (result <= x)
-        {
-          i++;
-          result = i * i;
+            if(p2>n) break;
+            else {
+                int j=(int)Math.floor((start-m)/2)+1;
+                while(j<=length){
+                    isMult[j-1]=true;
+                    j+=p;
+                }
+            }
         }
-        return i - 1;
-    }  
-    
-    public static int intCbrt(long x){
-        // Base cases
-        if (x == 0 || x == 1) return (int)x;
-
-        // Starting from 1, try all numbers until
-        // i*i*i is greater than or equal to x.
-        int i = 1, result = 1;
-        while (result <= x)
-        {
-          i++;
-          result = i * i * i;
-        }
-        return i - 1;
+        
+        int primesCount=0;
+        long[] newPrimes =new long[length];
+        for(int i=0; i<length; i++){
+            if (isMult[i]==false) newPrimes[primesCount++]=(2*i+m);
+        } 
+                
+        return Arrays.copyOf(newPrimes, primesCount);
     }
-
+    
+    /**
+     * La función eratosthenes usa el algoritmo detallado en la pág.7 para
+     * cribar los enteros hasta n y devolver un array con todos los números
+     * primos menores o iguales a n.
+     * 
+     * @param n Extremos superior hasta el que cribar
+     * @return Array con los números primos menores o iguales a n.
+     */
     public static long[] eratosthenes(int n){
         n-=n%2==0?1:0;
         int stop=(n-1)/2;
@@ -272,62 +318,28 @@ public class TFG {
         for(int i=1; i<=stop; i++){
             if (isPrime[i]) newPrimes[primesCount++]=(2*i+1);
         } 
-        
         return Arrays.copyOf(newPrimes, primesCount);
     }
     
-    /*
-    Se quiere obtener el número de primos en el intervalo [m,n]
-    Para ello hace falta cononcer todos los primos hasta [n^(1/2)]
-    Estos deben darse en long[] primes
-    Por simplicidad, solo se buscará primos en los enteros impares
-    Por eso, si m y/o n son pares se considera m+1 y/o n-1
-    Se crea un vector con (n-m+2)/2 ceros y se sustituye por 1 si se
-    corresponde a un múltiplo de un elemento de long[] primes
-    */
-    public static long[] eratosthenesInterval(long m, long n, long[] primes){
-        
-        m+=m%2==0?1:0;
-        n-=n%2==0?1:0;
-        
-        int length = (int) (n-m+2)/2;
-        //TODO: Usar BitSet para ahorrar memoria 
-        boolean[] isMult = new boolean[length];
-        
-        for(int i=0; i<length; i++) isMult[i]=false;
-        
-        for (int i=1; i<primes.length; i++){
-            long p=primes[i];
-            long p2=p*p;
-            long start;
-            if(p2<m){
-                long q=2*p;
-                start=(m/q)*q+p;
-                if (start<m) start+=q;
-            } else start=p2;
-
-            if(p2>n) break;
-            else {
-                int j=(int)Math.floor((start-m)/2)+1;
-                while(j<=length){
-                    isMult[j-1]=true;
-                    j+=p;
-                }
-            }
+    //TODO: Usar bisección de Bolzano para calcular intSqrt(x) y intCbrt(x)
+    //Este método es de orden O(sqrt(x)) y el siguiente O(cbrt(x))
+    public static int intSqrt(long x){
+        if (x == 0 || x == 1) return (int)x;
+        int i = 1, result = 1;
+        while (result <= x){
+          i++;
+          result = i * i;
         }
-        
-        int primesCount=0;
-        long[] tnewPrimes =new long[length];
-        for(int i=0; i<length; i++){
-            if (isMult[i]==false) tnewPrimes[primesCount++]=(2*i+m);
-        } 
-                
-        long[] newPrimes =new long[primesCount];
-        for(int i=0; i<primesCount; i++){
-            newPrimes[i]=tnewPrimes[i];
-        }
-        
-        return newPrimes;
-    }
+        return i - 1;
+    }  
     
+    public static int intCbrt(long x){
+        if (x == 0 || x == 1) return (int)x;
+        int i = 1, result = 1;
+        while (result <= x){
+          i++;
+          result = i * i * i;
+        }
+        return i - 1;
+    }
 }
