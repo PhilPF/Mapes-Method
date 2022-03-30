@@ -88,7 +88,7 @@ public class Phi {
         
         //Se calculan ma y ma/2
         ma=1;
-        for (int i=0; i<a; i++) ma*=firstAPrimes[i];
+        for (long p:firstAPrimes) ma*=p;
         ma2=ma/2;
         
         /* En los casos a=0 y a=1 se genera una tabla "falsa" con un solo elemento
