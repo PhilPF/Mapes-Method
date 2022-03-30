@@ -12,10 +12,6 @@ import java.util.*;
  * @author ppita
  */
 public class TFG {
-
-    /**
-     * @param args the command line arguments
-     */
     
     //Se almacenará en el array primes los primos <= maxPrime
     public static final int maxPrime = 20000;
@@ -88,7 +84,7 @@ public class TFG {
                 //System.out.println(exPhi.getMessage());
                 
                 //Se hace M+=1 y se elige i tal que 2^i|M. Además y+=T_M(x,a)
-                M.sum2Powi(0);
+                M.add2Powi(0);
                 i=M.getPowOfMaxDiv();
                 y+=T_M;
                 
@@ -99,7 +95,7 @@ public class TFG {
             //Como ha podido calcularse phi, se hace y+=phi(T_M(x,a),i)
             //Además, se pone M+=2^i y se elige i tal que 2^i|M.
             y+=phi;
-            M.sum2Powi(i);
+            M.add2Powi(i);
             i=M.getPowOfMaxDiv();
             
             //En el caso en que M=2^a, se finaliza el cálulo de y(:=phi(x,a))
@@ -193,6 +189,7 @@ public class TFG {
     
     //La función phiLehmer recibe los valores x,a y calcula phi(x,a) usando la
     //fórmula de Lehmer inversa. (No comprueba si puede hacerse o no, solo calcula)
+    //El algoritmo es una modificación de la pág.22
     public static long phiLehmer(long x, int a){
     
         //Se toma pix=pi(x), b=pi(sqrt(x)), c=pi(cbrt(x))
