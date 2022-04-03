@@ -20,7 +20,7 @@ public class Phi {
     private final int a;
     
     //El entero ma viene dado por m_a=p_1*p_2*...*p_a y ma2=ma/2;
-    private long ma;
+    private long ma=1;
     private long ma2;
     
     //El entero phima es varphi(m_a):=phi(m_a,a)=(p_1-1)*(p_2-1)*...*(p_a-1)
@@ -51,62 +51,37 @@ public class Phi {
      * @return Se devuelve phi(x,a)
      */
     public long valueAtX(long x){
-        if (x==0) return 0;
-        if (a==0) return x;
-        long absx=Math.abs(x);
-        long r=absx%ma;
-        long z=(absx/ma)*phima;
-        long c=table.length;
+        long r=x%ma;
+        long z=(x/ma)*phima;
         if (r<ma2){
-            for (int i=0; i<table.length; i++) {
-                if((r+1)<=table[i]){
-                    c=i;
-                    break;
-                }
-            }
-            z+=c;
+            int c = Arrays.binarySearch(table, r+1);
+            /* Observar que binarySearch() devuelve el índice si r+1 aparce en la tabla
+             * y pos:={-(posición donde debería aparecer) -1} en caso contrario.*/
+            z+=c<0?-c-1:c;
         }  
         else {
-            for (int i=0; i<table.length; i++) {
-                if((ma-r)<=table[i]){
-                    c=i;
-                    break;
-                }
-            }
-            z+=phima-c;
+            int c = Arrays.binarySearch(table, ma-r);
+            z+=c<0?phima+c+1:phima-c;
         }
-        return (long)(absx/x)*z;
+        return z;
     }
     
     /* La función generateTable genera la tabla crítica de phi para el valor de a fijado.
      * Además, genera algunas constantes necesarias como ma, ma2 y phima. */
     private void generateTable(){
-        /* Se crea una copia del array TFG.primes con los primeros a primos.
-         * Se asume que el array es suficientemente grande para los valores de a
-         * que se usarán.*/
-        long[] firstAPrimes=Arrays.copyOf(TFG.primes, a);
-        
-        //Se calculan ma y ma/2
-        ma=1;
-        for (long p:firstAPrimes) ma*=p;
+        //Se calculan ma, ma/2 y phima(:=varphi(m_a))
+        for (int i=0; i<a; i++){
+            long p=TFG.primes[i];
+            ma*=p;
+            phima*=(p-1);
+        }
         ma2=ma/2;
         
-        /* En los casos a=0 y a=1 se genera una tabla "falsa" con un solo elemento
-         * con intención de mantener la máxima generalidad en el código. 
-         * El primer caso es trivial y se gestiona aparte en valueAtX.
-         * Para el segundo caso no hace falta tabla y el propio algoritmo de
-         * valueAtX la ignora.
-         * En el resto de casos, se genera la tabla usando la función 
-         * TFG.eratosthenesInterval, usando firstAPrimes para cribar el intervalo 
-         * [a,ma2], y se fuerza que el primer valor sea 1 para que la tabla sea correcta*/
         
-        if(a==0 || a==1) table=new long[]{1};
-        else{
-            table = TFG.eratosthenesInterval((int)firstAPrimes[a-1],ma2, firstAPrimes);
-            table[0]=1;
-        }
-        
-        //Se calcula phima(:=varphi(m_a))
-        for (long p:firstAPrimes) phima*=(p-1);
+        /* Se genera la tabla usando la función TFG.eratosthenesInterval, 
+         * usando los primeros a primos para cribar el intervalo [a,ma2], y se fuerza 
+         * que el primer valor sea 1 para que la tabla sea correcta*/
+        table = TFG.eratosthenesInterval((int)TFG.primes[a-1],ma2, TFG.primes ,a);
+        table[0]=1;
     }
 }

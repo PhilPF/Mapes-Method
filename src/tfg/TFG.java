@@ -14,98 +14,86 @@ import java.util.*;
 public class TFG {
     
     //Se almacenará en el array primes los primos <= maxPrime
-    public static final int maxPrime = 20000;
+    private static final int maxPrime = (int)1e6;
     public static long[] primes;
 
     /* Se almacenará en el array phiArray instancias de la clase Phi(a)
-     * con 0<=a<=maxA. La principal utilidad de estas son sus tablas críticas
+     * con 4<=a<=maxA. La principal utilidad de estas son sus tablas críticas
      * que contienen información de Phi(x,a). Se obtendrán estos valores con la 
      * función valueAtX(x). */
-    public static final int maxA = 9;
-    public static Phi[] phiArray = new Phi[maxA+1];
+    private static final int maxA = 9;
+    private static Phi[] phiArray = new Phi[maxA+1];
     
     public static void main(String[] args) {
         
         /* Se generan los primos hasta maxPrime y se almacenan en primes
          * usando la función eratosthenes. 
          * Se generan y se guardan las instancias de Phi(a) en el array.*/
-        primes = eratosthenes(maxPrime);
-        for (int i=0; i<=maxA; i++) phiArray[i] = new Phi(i);
+        primes = eratosthenes((int) maxPrime);
+        for (int i=4; i<=maxA; i++) phiArray[i] = new Phi(i);
         
         //Se evalúa la función mapes en x y se saca el valor por pantalla.
-        long x = (long) 1e8; //A partir de 4e8=maxPrime^2, empieza a dar valores incorrectos.
+        long x = (long) 1e11;
         long pix=mapes(x);
         System.out.println(pix);
-       
+        
+        /**
+         * ÚLTIMOS CÁLCULOS:
+         * 1e11, 9m 4s
+         * 1e11, 5m 15s 
+         * 1e11, 4m 35s
+         */
     }
     
     /* La función mapes calcula pi(x) usando el Método de Mapes.
      * El esquema del algoritmo está en la pág.30.*/
     public static long mapes(long x){
-    
+
         /* Se inicializan las variables antes de la primera iteración.
          * y=0; M=0; i=a=pi(sqrt(x)); T_M(x,a)=0; phi=0*/
         long y=0;
-        BigInt M = new BigInt();
         int a=(int) smallPi(intSqrt(x));
         int i=a;
+        BigInt M = new BigInt(a);
         long T_M=0;
         long phi=0;
        
-        /* Se aplica iteradamente el algoritmo de Mapes para calcular 
-         * el valor de y(:=phi(x,a)) un número finito de veces. Esto se hace por
-         * mantener cierto control del número de veces que se aplica, aunque se 
-         * podría usar un bucle while.*/
-        long maxIter = (long) 1e7;
-        long j;
-        for(j=1; j<=maxIter; j++){
+        long j=0;
+        
+        /* En el caso que M=2^a, se finaliza el cálulo de y(:=phi(x,a))*/
+        while(!M.isPowA()){
+            j++;
             //De forma opcional. Se saca por pantalla todos los valores calculados la iteracióna anterior.
-            //System.out.println("It:"+(j-1)+", y:"+y+", M:"+M.getM()+", i:"+i+", a:"+a+", T_M:"+T_M+", Phi:"+phi);
+            //if(j%1000000==0)System.out.println("It:"+(j)+", y:"+y+/*", M:"+M.getM()+*/", i:"+i+", a:"+a+", T_M:"+T_M+", Phi:"+phi);
 
-            /* Se calcula T_M(x,a).
-             * Se recogen excepciones en el caso en que T_M no se haya podido 
-             * calcular correctamente y así avisar al usuario.*/
-            try {
-                T_M=T(M,x,a);
-            } catch (Exception ex) {
-                System.out.println(ex);
-            }
-            
-            /* Se intenta calcular phi(T_M(x,a),i) mediante los valores en la 
+            /* Se calcula T_M(x,a).*/
+            T_M=T(M,x,a);
+
+            /* Se intenta calcular phi(T_M(x,a),i) directamente, mediante los valores en la 
              * tabla crítica correspondiente o usando la fórmula de Lehmer invertida.
              * En caso en que no se pueda por ninguno de estos métodos, la función
              * phixa lanza una excepción, la cual se recoge y se procede según
              * indica el algoritmo de Mapes. */
             try{
                 phi = phixa(T_M,i);
+                
+                /* Como ha podido calcularse phi, se hace y+=phi(T_M(x,a),i)
+                 * Además, se pone M+=2^i y se elige i tal que 2^i|M. */
+                y+=phi;
+                M.add2Powi(i);
+                i=M.getMaxDiv();
             }catch (Exception exPhi){
                 /* Puede usarse la excepción para que quede constancia al usuario
-                 * de que no se ha podido calcular phi.
-                 * System.out.println(exPhi.getMessage());*/
+                 * de que no se ha podido calcular phi.*/
+                //System.out.println(exPhi.getMessage());
                 
                 //Se hace M+=1 y se elige i tal que 2^i|M. Además y+=T_M(x,a)
                 M.add2Powi(0);
-                i=M.getPowOfMaxDiv();
+                i=M.getMaxDiv();
                 y+=T_M;
-                
-                //En este momento debe empezar la siguiente iteración, por lo se usa continue
-                continue;
             }
-            /* Como ha podido calcularse phi, se hace y+=phi(T_M(x,a),i)
-             * Además, se pone M+=2^i y se elige i tal que 2^i|M. */
-            y+=phi;
-            M.add2Powi(i);
-            i=M.getPowOfMaxDiv();
-            
-            /* En el caso en que M=2^a, se finaliza el cálulo de y(:=phi(x,a))
-             * por lo que se finalizan las iteraciones y se sale del bucle con break*/
-            if(M.isPowA(a)) break;
         }
 
-        /* Se puede avisar al usuario en el caso en el que se alcance el máximo 
-         * de iteraciones para revisar el código(si procede) o aumentarlas.
-         * Además, se saca por pantalla el número necesitado como referencia.*/
-        if(j>=maxIter-1) System.out.println("Reached maxIter");
         //System.out.println("Iterations: "+j);
         
         //Por último, se devuelve al usuario el valor pi(x)=phi(x,a)+a-1 
@@ -114,66 +102,59 @@ public class TFG {
     }
     /**
      * La función T recibe como parámetros los valores M,x,a y devuelve T_M(x,a)
-     * Se lanza una excepción en el caso en que no pueda calcularse correctamente.
      * 
      * @param M
      * @param x
      * @param a
      * @return Se devuelve el valor T_M(x,a)
-     * @throws Exception 
      */
     
-    public static long T(BigInt M, long x, int a) throws Exception{
+    public static long T(BigInt M, long x, int a){
         
-        /*Se inicializan los siguientes valores.
+        /* Se inicializan los siguientes valores.
          * En betaSum se almacenará beta_0+beta_1+...+beta_{a-1}
          * Y en primePowProd p_1^{beta_0}+...+p_a^{beta_{a-1}}*/
-        int betaSum = 0;
-        long primePowProd = 1;
+        long betaSum=M.getCount();
+        long T = x;
         
-        /* Es necesario conocer los primos hasta a. 
-         * En caso contrario, se lanza una excepción. */
-        if(a>primes.length) throw new Exception("T Exception");
-        
-        /*El ínidice posInMCounter se inicializa a 0 y se usará para recorrer 
-         * los valores en M, puesto que este contiene solo los valores no nulos. */
-        int posInMCounter = 0;
-        
-        /*El siguiente bucle tiene longitud a, pero en caso en que el índice
-         * posInMCounter alcance la última posición posible en M, termina, puesto
-         * que los valores de beta_i restantes serán nulos. */
-        for (int i=0; i<a && posInMCounter<M.size(); i++){
-            /*Cada vez que se halle el valor i en el array de M, se suma 1 a 
-             * betaSum y se multiplica primePowProd por el primo p_{i+1};*/
-            if(M.get(posInMCounter)==i){
-                betaSum++;
-                primePowProd*=primes[i];
-                posInMCounter++;
+        /* Puesto que el número de valores en M es betaSum(:=M.getCount()) y 
+         * el menor valor no nulo es M.getMaxDiv, en el siguiente bucle se
+         * garantiza acceder a todos los valores no nulos de M. */
+        int counter=0;
+        for (int i=M.getMaxDiv(); counter<betaSum; i++){
+            /*Cada vez que se halle un valor en i, se divide T por p_{i+1}*/
+            if(M.get(i)){
+                counter++;
+                T/=primes[i];
             }
         }
         
-        //El valor que debe devolver T es la siguiente división entera.
-        long T=x/primePowProd;
         //Además, el signo de T puede determinarse con la paridad de betaSum.
         T*=betaSum%2==0?1:-1;
         
         return T;
     }
     
-    /*La función phixa recibe como parámetros los valores x, a y devuelve phi(x,a).
-     * Si se puede, devuelve el valor desde una de las tablas críticas.
-     * En caso contrario, se intenta calcular mediante la función phiLehmer.
+    /* La función phixa recibe como parámetros los valores x, a y devuelve phi(x,a).
+     * Si 0<=a<=4, se calcula el valor directamente. Si 4<a<=maxA se puede, devuelve 
+     * el valor desde una de las tablas críticas.
+     * En caso contrario, se intenta calcular mediante la función phiLehmer().
      * Si no puede calcularse mediante estos métodos, se lanza una excepción. */
     public static long phixa(long x ,int a) throws Exception{
     
-        //Se comprueba si el valor se halla en una tabla y en tal caso se devuelve.
-        if(a<=maxA) return phiArray[a].valueAtX(x);
-        
         //Se devuelve el valor del caso trivial
         if(x==0) return 0;
         
         //Para x<0 se sabe que phi(x,a)=-phi(-x,a)
         if(x<0) return -phixa(-x,a);
+        
+        if(a==0) return x;
+        if(a==1) return (x+1)/2;
+        if(a==2) return x-x/2-x/3+x/6;
+        if(a==3) return x-x/2-x/3-x/5+x/6+x/10+x/15-x/30;
+        
+        //Se comprueba si el valor se halla en una tabla y en tal caso se devuelve.
+        if(a<=maxA) return phiArray[a].valueAtX(x);
         
         /* Las siguientes son las condiciones necesarias para poder aplicar la 
          * fórmula inversa de Lehmer.
@@ -199,7 +180,7 @@ public class TFG {
      * El algoritmo es una modificación de la pág.22 */
     public static long phiLehmer(long x, int a){
     
-        /*Se toma pix=pi(x), b=pi(sqrt(x)), c=pi(cbrt(x))
+        /* Se toma pix=pi(x), b=pi(sqrt(x)), c=pi(cbrt(x))
          * Notar que se usa smallPi asumiendo que todos estos valores se hallan
          * en la tabla primes. */
         long pix=smallPi(x);
@@ -228,40 +209,45 @@ public class TFG {
         return sum; 
     }
     
-    /* La función smallPi recibe el valor x y devuelve la cantidad de primos <=x
-     * que se hallan en la tabla primes.
-     * Si x es mayor que maxPrime no se lanza ninguna excepción, pero se avisa al 
-     * usuario por pantalla de que el valor podría ser incorrecto. */
-    public static long smallPi(long x){
-        if (x>maxPrime) System.out.println("WARNING:Possible wrong output.\nThe value "+x+" is too big for smallPi");    
-        long pix=0;
-        for (int k=0; k<primes.length && primes[k]<=x; k++) pix++; 
-        return pix;
+    /** 
+     * La función smallPi recibe el valor x y devuelve la cantidad de primos 
+     * menores o iguales que x que se hallan en la tabla primes.
+     * Se observa la función binarySearch() devuelve el índice de x si x es primo
+     * por lo que en este caso se le suma 1 por empezar el array en 0.
+     * En caso contrario, devuelve  pos:={-(posición donde debería aparecer) -1},
+     * por lo que debe devolverse -pos-1.
+     *
+     * @param x
+     * @return pi(x)
+     */
+    public static int smallPi(long x){
+        //if (x>maxPrime) System.out.println("WARNING:Possible wrong output.\nThe value "+x+" is too big for smallPi");    
+        int pos = Arrays.binarySearch(primes,x);
+        if(pos<0) return -pos-1;
+        else return pos+1;
     }
     
     /**
      * La función eratosthenesInterval usa el algoritmo detallado en la pág.5
      * para devolver los números en el intervalo [m,n] cribados con prime.
-     * Notar que los valores no son necesariamente primos. Son aquellos que no
-     * son múltiplos de los valores en prime.
+     * Notar que los valores no son necesariamente primos.
+     * Son aquellos que no son múltiplos de los valores en prime.
      * 
      * @param m Extremo inferior del intervalo
      * @param n Extremos superior del inervalo
-     * @param prime Array con los primos que debe usar la criba
+     * @param prime Array con primos
+     * @param length Índice hasta el que debe considerarse el array prime
      * @return Array de números en [m,n] cribado con primes
      */
-    public static long[] eratosthenesInterval(long m, long n, long[] prime){
+    public static long[] eratosthenesInterval(long m, long n, long[] prime, int length){
         
         m+=m%2==0?1:0;
         n-=n%2==0?1:0;
         
-        int length = (int) (n-m+2)/2;
-        //TODO: Usar BitSet para ahorrar memoria 
-        boolean[] isMult = new boolean[length];
+        int stop = (int) (n-m+2)/2;
+        BitSet isMult = new BitSet(stop);
         
-        for(int i=0; i<length; i++) isMult[i]=false;
-        
-        for (int i=1; i<prime.length; i++){
+        for (int i=1; i<length; i++){
             long p=prime[i];
             long p2=p*p;
             long start;
@@ -273,18 +259,18 @@ public class TFG {
 
             if(p2>n) break;
             else {
-                int j=(int)Math.floor((start-m)/2)+1;
-                while(j<=length){
-                    isMult[j-1]=true;
+                int j=(int)(start-m)/2+1;
+                while(j<=stop){
+                    isMult.set(j-1);
                     j+=p;
                 }
             }
         }
         
         int primesCount=0;
-        long[] newPrimes =new long[length];
-        for(int i=0; i<length; i++){
-            if (isMult[i]==false) newPrimes[primesCount++]=(2*i+m);
+        long[] newPrimes =new long[stop];
+        for(int i=0; i<stop; i++){
+            if (isMult.get(i)==false) newPrimes[primesCount++]=(2*i+m);
         } 
                 
         return Arrays.copyOf(newPrimes, primesCount);
@@ -299,20 +285,18 @@ public class TFG {
      * @return Array con los números primos menores o iguales a n.
      */
     public static long[] eratosthenes(int n){
-        n-=n%2==0?1:0;
         int stop=(n-1)/2;
 
-        boolean[] isPrime = new boolean[stop+1];
-        for(int i=1; i<=stop; i++) isPrime[i]=true;
+        BitSet isMult = new BitSet(stop+1);
 
         for (int k=1; k<=stop; k++){
-            if (isPrime[k]){
+            if (isMult.get(k)==false){
                 int p=2*k+1, p2=p*p;
                 if(p2<=n){
                     for(int i=(p2-1)/2; i<=stop; i+=p){
-                        isPrime[i]=false;
+                        isMult.set(i);
                     }
-                }
+                }else break;
             }
         }
         
@@ -320,30 +304,32 @@ public class TFG {
         long[] newPrimes =new long[stop+1];
         newPrimes[0]=2;
         for(int i=1; i<=stop; i++){
-            if (isPrime[i]) newPrimes[primesCount++]=(2*i+1);
+            if (isMult.get(i)==false) newPrimes[primesCount++]=(2*i+1);
         } 
         return Arrays.copyOf(newPrimes, primesCount);
     }
     
-    //TODO: Usar bisección de Bolzano para calcular intSqrt(x) y intCbrt(x)
-    //Este método es de orden O(sqrt(x)) y el siguiente O(cbrt(x))
-    public static int intSqrt(long x){
-        if (x == 0 || x == 1) return (int)x;
-        int i = 1, result = 1;
-        while (result <= x){
-          i++;
-          result = i * i;
+    /* Se usa el método de Herón (caso particular de Newton) para calcular la raíz
+     * cuadrada de un número entero x.
+     * De forma análoga se calcula la raíz cúbica. */
+    public static long intSqrt(long x){
+        long x0=x/2; //Es mejor 2^[log_2(n)/2+1]
+        long x1=(x0+x/x0)/2;
+        while(x1<x0){
+            x0=x1;
+            x1=(x0+x/x0)/2;
         }
-        return i - 1;
-    }  
+        return x0;
+        
+    }
     
-    public static int intCbrt(long x){
-        if (x == 0 || x == 1) return (int)x;
-        int i = 1, result = 1;
-        while (result <= x){
-          i++;
-          result = i * i * i;
+    public static long intCbrt(long x){
+        long x0=2*x/3; 
+        long x1=(2*x0+x/(x0*x0))/3;
+        while(x1<x0){
+            x0=x1;
+            x1=(2*x0+x/(x0*x0))/3;
         }
-        return i - 1;
+        return x0;
     }
 }
