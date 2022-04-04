@@ -14,8 +14,13 @@ import java.util.*;
 public class TFG {
     
     //Se almacenará en el array primes los primos <= maxPrime
-    private static final int maxPrime = (int)1e6;
-    public static long[] primes;
+    private static final int maxPrime = (int)1e9;
+    public static long[] primes = new long[50847534];
+    private static final int[] bigPi = {5761455, 11078937, 16252325, 21336326, 26355867, 31324703, 36252931, 41146179, 46009215};
+    /*private static final int maxPrime = (int)1e10;
+    public static long[] primes = new long[455052511];
+    private static final int[] bigPi = {5761455, 11078937, 16252325, 21336326, 26355867, 31324703, 36252931, 41146179, 46009215, 
+                                        50847534, 98222287, 144449537, 189961812, 234954223, 279545368, 323804352, 367783654, 411523195}; */
 
     /* Se almacenará en el array phiArray instancias de la clase Phi(a)
      * con 4<=a<=maxA. La principal utilidad de estas son sus tablas críticas
@@ -29,20 +34,19 @@ public class TFG {
         /* Se generan los primos hasta maxPrime y se almacenan en primes
          * usando la función eratosthenes. 
          * Se generan y se guardan las instancias de Phi(a) en el array.*/
-        primes = eratosthenes((int) maxPrime);
+        
+        int partition = (int) 1e8;
+        generationEratosthenes(primes, partition);
+        for(int i=0; i<bigPi.length; i++) generationEratosthenesInterval(primes, bigPi[i], (i+1)*partition,  (i+2)*partition, primes, (int) intSqrt(bigPi[i]));
+
         for (int i=4; i<=maxA; i++) phiArray[i] = new Phi(i);
+
+        //System.out.println("Preparativos Finalizados");
         
         //Se evalúa la función mapes en x y se saca el valor por pantalla.
-        long x = (long) 1e11;
+        long x = (long) 1e14;
         long pix=mapes(x);
         System.out.println(pix);
-        
-        /**
-         * ÚLTIMOS CÁLCULOS:
-         * 1e11, 9m 4s
-         * 1e11, 5m 15s 
-         * 1e11, 4m 35s
-         */
     }
     
     /* La función mapes calcula pi(x) usando el Método de Mapes.
@@ -307,6 +311,65 @@ public class TFG {
             if (isMult.get(i)==false) newPrimes[primesCount++]=(2*i+1);
         } 
         return Arrays.copyOf(newPrimes, primesCount);
+    }
+    
+    public static void generationEratosthenesInterval(long[] array, int arrayStart, long m, long n, long[] prime, int length){
+        
+        m+=m%2==0?1:0;
+        n-=n%2==0?1:0;
+        
+        int stop = (int) (n-m+2)/2;
+        BitSet isMult = new BitSet(stop);
+        
+        for (int i=1; i<length; i++){
+            long p=prime[i];
+            long p2=p*p;
+            long start;
+            if(p2<m){
+                long q=2*p;
+                start=(m/q)*q+p;
+                if (start<m) start+=q;
+            } else start=p2;
+
+            if(p2>n) break;
+            else {
+                int j=(int)(start-m)/2+1;
+                while(j<=stop){
+                    isMult.set(j-1);
+                    j+=p;
+                }
+            }
+        }
+        
+        int primesCount=arrayStart;
+        for(int i=0; i<stop; i++){
+            if (isMult.get(i)==false){
+                array[primesCount++]=(2*i+m);
+            }
+        } 
+    }
+    
+    public static void generationEratosthenes(long[] array, int n){
+        int stop=(n-1)/2;
+
+        BitSet isMult = new BitSet(stop+1);
+
+        for (int k=1; k<=stop; k++){
+            if (isMult.get(k)==false){
+                int p=2*k+1, p2=p*p;
+                if(p2<=n){
+                    for(int i=(p2-1)/2; i<=stop; i+=p){
+                        isMult.set(i);
+                    }
+                }else break;
+            }
+        }
+        
+        int primesCount=1;
+        array[0]=2;
+        for(int i=1; i<=stop; i++){
+            if (isMult.get(i)==false) array[primesCount++]=(2*i+1);
+        } 
     }
     
     /* Se usa el método de Herón (caso particular de Newton) para calcular la raíz
