@@ -288,30 +288,31 @@ public class TFG {
         int stop = (int) (n-m+2)/2;
         BitSet isMult = new BitSet(stop);
         
-        for (int i=1; i<length; i++){
-            long p=prime[i];
-            long p2=p*p;
-            long start;
+        int i=1;
+        long p=prime[i];
+        long p2=p*p;
+        long start;
+        do{
             if(p2<m){
                 long q=2*p;
                 start=(m/q)*q+p;
                 if (start<m) start+=q;
             } else start=p2;
 
-            if(p2>n) break;
-            else {
-                int j=(int)(start-m)/2+1;
-                while(j<=stop){
-                    isMult.set(j-1);
-                    j+=p;
-                }
+            int j=(int)(start-m)/2+1;
+            while(j<=stop){
+                isMult.set(j-1);
+                j+=p;
             }
+            
+            p=prime[++i]; p2=p*p;
         }
+        while(i<length && p2<=n);
         
         int primesCount=0;
         long[] newPrimes =new long[stop];
-        for(int i=0; i<stop; i++){
-            if (isMult.get(i)==false) newPrimes[primesCount++]=(2*i+m);
+        for(int j=0; j<stop; j++){
+            if (isMult.get(j)==false) newPrimes[primesCount++]=(2*j+m);
         } 
                 
         return Arrays.copyOf(newPrimes, primesCount);
@@ -330,18 +331,19 @@ public class TFG {
 
         BitSet isMult = new BitSet(stop+1);
 
-        int p, p2;
-        for (int k=1; k<=stop; k++){
-            if (isMult.get(k)==false){
-                p=2*k+1;
-                p2=p*p;
-                if(p2<=n){
-                    for(int i=(p2-1)/2; i<=stop; i+=p){
-                        isMult.set(i);
-                    }
-                }else break;
+        int p=3, p2=9;
+        int k=1;
+        do{
+            for(int i=(p2-1)/2; i<=stop; i+=p){
+                isMult.set(i);
             }
-        }
+            
+            do k++; while(isMult.get(k) && k<stop);
+            
+            p=2*k+1;
+            p2=p*p;
+            
+        } while(p2<=n);
         
         int primesCount=1;
         long[] newPrimes =new long[stop+1];
@@ -372,30 +374,31 @@ public class TFG {
         int stop = (int) (n-m+2)/2;
         BitSet isMult = new BitSet(stop);
         
-        for (int i=1; i<length; i++){
-            long p=prime[i];
-            long p2=p*p;
-            long start;
+        int i=1;
+        long p=prime[i];
+        long p2=p*p;
+        long start;
+        do{
             if(p2<m){
                 long q=2*p;
                 start=(m/q)*q+p;
                 if (start<m) start+=q;
             } else start=p2;
 
-            if(p2>n) break;
-            else {
-                int j=(int)(start-m)/2+1;
-                while(j<=stop){
-                    isMult.set(j-1);
-                    j+=p;
-                }
+            int j=(int)(start-m)/2+1;
+            while(j<=stop){
+                isMult.set(j-1);
+                j+=p;
             }
+            
+            p=prime[++i]; p2=p*p;
         }
+        while(i<length && p2<=n);
         
         int primesCount=arrayStart;
-        for(int i=0; i<stop; i++){
-            if (isMult.get(i)==false){
-                array[primesCount++]=(2*i+m);
+        for(int j=0; j<stop; j++){
+            if (isMult.get(j)==false){
+                array[primesCount++]=(2*j+m);
             }
         } 
     }
@@ -413,16 +416,19 @@ public class TFG {
 
         BitSet isMult = new BitSet(stop+1);
 
-        for (int k=1; k<=stop; k++){
-            if (isMult.get(k)==false){
-                int p=2*k+1, p2=p*p;
-                if(p2<=n){
-                    for(int i=(p2-1)/2; i<=stop; i+=p){
-                        isMult.set(i);
-                    }
-                }else break;
+        int p=3, p2=9;
+        int k=1;
+        do{
+            for(int i=(p2-1)/2; i<=stop; i+=p){
+                isMult.set(i);
             }
-        }
+
+            do k++; while(isMult.get(k) && k<stop);
+            
+            p=2*k+1;
+            p2=p*p;
+            
+        } while(p2<=n);
         
         int primesCount=1;
         array[0]=2;
