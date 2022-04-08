@@ -26,7 +26,7 @@ public class Phi {
     //El entero phima es varphi(m_a):=phi(m_a,a)=(p_1-1)*(p_2-1)*...*(p_a-1)
     private long phima=1;
     
-    //En el array table se almacena la tabla crítica para el valor de a fijado.
+    //En el array table[] se almacena la tabla crítica para el valor de a fijado.
     private long[] table;
     
     
@@ -55,12 +55,14 @@ public class Phi {
         long z=(x/ma)*phima;
         if (r<ma2){
             int c = Arrays.binarySearch(table, r+1);
-            /* Observar que binarySearch() devuelve el índice si r+1 aparce en la tabla
-             * y pos:={-(posición donde debería aparecer) -1} en caso contrario.*/
+            /* Observar que binarySearch() devuelve el índice de r+1 si aparce en la tabla
+             * y pos:={-(posición donde debería aparecer) -1} en caso contrario (simpre <0).*/
             z+=c<0?-c-1:c;
         }  
         else {
             int c = Arrays.binarySearch(table, ma-r);
+            /* Observar que binarySearch() devuelve el índice de ma-r si aparce en la tabla
+             * y pos:={-(posición donde debería aparecer) -1} en caso contrario (simpre <0).*/
             z+=c<0?phima+c+1:phima-c;
         }
         return z;
@@ -76,7 +78,6 @@ public class Phi {
             phima*=(p-1);
         }
         ma2=ma/2;
-        
         
         /* Se genera la tabla usando la función TFG.eratosthenesInterval, 
          * usando los primeros a primos para cribar el intervalo [a,ma2], y se fuerza 

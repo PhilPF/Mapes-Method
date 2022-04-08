@@ -22,8 +22,9 @@ public class BigInt {
     private int count=0;
     
     /* El constructor de BigInt crea el arrayList arrayM de tamaño a+1. 
-     * Puesto que está vacío, se observa que se corresponde a M=0. 
-     * Además, se inicializa maxDiv=0, y el valor de a*/
+     * Puesto que al crearlo todos sus elementos son nulos, se corresponde a M=0. 
+     * Además, se inicializa maxDiv=0 (inicialmente el valor no es correcto, pero 
+     * se actualizará antes de usarse) y el valor de a*/
     public BigInt(int a){
         this.a=a;
         maxDiv=0;
@@ -63,11 +64,6 @@ public class BigInt {
         return arrayM.get(i);
     }
     
-    //Devuelve el tamaño de arrayM
-    /*public int size(){
-        return count;
-    }*/
-    
     /**
      * La función add2Powi toma el valor i y hace M+=2^i.
      * El algoritmo seguido se entiende con el siguiente ejemplo:
@@ -83,12 +79,16 @@ public class BigInt {
      */
     public void add2Powi(int i){
         int j=i;
-        for (j=i; j<a+1 && arrayM.get(j); j++){
+        //Se pone valor 0 a todos los elementos no nulos consecutivos de i. 
+        for (j=i; j<=a && arrayM.get(j); j++){
             arrayM.clear(j);
             count--;
         }
+        //Se pone 1 en el índice siguiente al último valor no nulo.
         arrayM.set(j);
         count++;
+        
+        //Además, puede actualizarse maxDiv del siguiente modo.
         if(i<=maxDiv) maxDiv=j;
     }
     

@@ -13,14 +13,12 @@ import java.util.*;
  */
 public class TFG {
     
-    //Se almacenará en el array primes los primos <= maxPrime
+    /* Se almacenará en el array primes los primos <= maxPrime
+     * Conociendo pi(1e9)=50847534 puede crearse el array primes[] del tamaño justo.
+     * Los valores que aprecen en bigPi[] son pi(ie8) con i=2,...,10*/
     private static final int maxPrime = (int)1e9;
     public static long[] primes = new long[50847534];
     private static final int[] bigPi = {5761455, 11078937, 16252325, 21336326, 26355867, 31324703, 36252931, 41146179, 46009215};
-    /*private static final int maxPrime = (int)1e10;
-    public static long[] primes = new long[455052511];
-    private static final int[] bigPi = {5761455, 11078937, 16252325, 21336326, 26355867, 31324703, 36252931, 41146179, 46009215, 
-                                        50847534, 98222287, 144449537, 189961812, 234954223, 279545368, 323804352, 367783654, 411523195}; */
 
     /* Se almacenará en el array phiArray instancias de la clase Phi(a)
      * con 4<=a<=maxA. La principal utilidad de estas son sus tablas críticas
@@ -31,22 +29,60 @@ public class TFG {
     
     public static void main(String[] args) {
         
-        /* Se generan los primos hasta maxPrime y se almacenan en primes
-         * usando la función eratosthenes. 
-         * Se generan y se guardan las instancias de Phi(a) en el array.*/
+        /* Se guarda en tInicial el tiempo inicial para poder llevar la cuenta del tiempo de ejecución.
+         * Se usará tParcial para calcular el timepo de cada parte. */
+        long tInicial = System.currentTimeMillis();
+        long t1Parcial, t2Parcial;
         
+        /* Se generan los primos hasta 1e8 y se almacenan en primes[] usando la 
+         * función eratosthenes(). Notar que esta es la versión sobrecargada para 
+         * poder almacenar el output en el array primes[] pasado como parámetro.*/
         int partition = (int) 1e8;
-        generationEratosthenes(primes, partition);
-        for(int i=0; i<bigPi.length; i++) generationEratosthenesInterval(primes, bigPi[i], (i+1)*partition,  (i+2)*partition, primes, (int) intSqrt(bigPi[i]));
+        eratosthenes(primes, partition);
+        
+        /* Usando los valores ya obtenidos y almacenados en primes[], puede cribarse 
+         * el resto de primos hasta 1e9 a intervalos de longitud 1e8.
+         * Para ello, se obtienen los extremos de los intervalos usando los valores 
+         * en bigPi[] y se usa la versión sobrecargada de eratosthenesInterval() para
+         * almacenar los primos generados en la tabla primes[] que se pasa como parámetro.*/
+        for(int i=0; i<bigPi.length; i++) eratosthenesInterval(primes, bigPi[i], (i+1)*partition,  (i+2)*partition, primes, (int) intSqrt(bigPi[i]));
 
+        t1Parcial = System.currentTimeMillis();
+        t2Parcial = t1Parcial;
+        System.out.println("Tabla de primos generada "+timeFormat(t1Parcial-tInicial));
+        
+        /* Se generan y se guardan las instancias de Phi(a) en el array.*/
         for (int i=4; i<=maxA; i++) phiArray[i] = new Phi(i);
 
-        //System.out.println("Preparativos Finalizados");
+        t1Parcial = System.currentTimeMillis();
+        System.out.println("Tablas de φ generadas "+timeFormat(t1Parcial-t2Parcial));
+        t2Parcial = t1Parcial;
         
-        //Se evalúa la función mapes en x y se saca el valor por pantalla.
-        long x = (long) 1e14;
-        long pix=mapes(x);
-        System.out.println(pix);
+        System.out.println();
+
+        //Valores de x de los cuales se calculará pi(x).
+        double[] xArray = {1e13, 2e13, 3e13, 4e13, 5e13, 6e13, 7e13, 8e13, 9e13, 1e14}; 
+       
+        for (double xd : xArray){
+            long x = (long) xd;
+            
+            //Se evalúa la función mapes en x y se saca el valor por pantalla.
+            long pix=mapes(x);
+            
+            t1Parcial = System.currentTimeMillis();
+            System.out.println("Valor de π("+(double)x+") calculado "+timeFormat(t1Parcial-t2Parcial));
+            t2Parcial = t1Parcial;
+
+            System.out.println("π("+(double)x+")="+pix);
+            
+            System.out.println();
+        }
+        
+        t1Parcial = System.currentTimeMillis()-tInicial;
+        System.out.println("Programa finalizado "+timeFormat(t1Parcial));
+        
+        
+
     }
     
     /* La función mapes calcula pi(x) usando el Método de Mapes.
@@ -54,13 +90,13 @@ public class TFG {
     public static long mapes(long x){
 
         /* Se inicializan las variables antes de la primera iteración.
-         * y=0; M=0; i=a=pi(sqrt(x)); T_M(x,a)=0; phi=0*/
+         * y=0; M=0; i=a=pi(sqrt(x));*/
         long y=0;
         int a=(int) smallPi(intSqrt(x));
         int i=a;
         BigInt M = new BigInt(a);
-        long T_M=0;
-        long phi=0;
+        long T_M;
+        long phi;
        
         long j=0;
         
@@ -152,6 +188,7 @@ public class TFG {
         //Para x<0 se sabe que phi(x,a)=-phi(-x,a)
         if(x<0) return -phixa(-x,a);
         
+        //Para valores pequeños de a, puede calcularse directamente.
         if(a==0) return x;
         if(a==1) return (x+1)/2;
         if(a==2) return x-x/2-x/3+x/6;
@@ -163,7 +200,7 @@ public class TFG {
         /* Las siguientes son las condiciones necesarias para poder aplicar la 
          * fórmula inversa de Lehmer.
          * Se ponen por separado para poder evaluar el caso primes[a-1]>=x a 1.*/
-        if(a<primes.length){
+        //if(a<primes.length){
             if(primes[a-1]<x){
                 if(x<Math.pow(primes[a], 4)){
                     if(x<=maxPrime){
@@ -171,7 +208,7 @@ public class TFG {
                     }
                 }
             } else return 1;
-        }
+        //}
         
         /* Si no se cumplen ninguna de las condiciones anteriores no puede
          * calcularse phi(x,a), luego se lanza una excepción. */
@@ -180,8 +217,8 @@ public class TFG {
     }
     
     /* La función phiLehmer recibe los valores x,a y calcula phi(x,a) usando la
-     * fórmula de Lehmer inversa. (No comprueba si puede hacerse o no, solo calcula)
-     * El algoritmo es una modificación de la pág.22 */
+     * fórmula de Lehmer inversa. El algoritmo es una modificación de la pág.22 
+     * (No comprueba si puede hacerse, de eso debe encargarse la funcíón que la llame)*/
     public static long phiLehmer(long x, int a){
     
         /* Se toma pix=pi(x), b=pi(sqrt(x)), c=pi(cbrt(x))
@@ -293,9 +330,11 @@ public class TFG {
 
         BitSet isMult = new BitSet(stop+1);
 
+        int p, p2;
         for (int k=1; k<=stop; k++){
             if (isMult.get(k)==false){
-                int p=2*k+1, p2=p*p;
+                p=2*k+1;
+                p2=p*p;
                 if(p2<=n){
                     for(int i=(p2-1)/2; i<=stop; i+=p){
                         isMult.set(i);
@@ -313,7 +352,19 @@ public class TFG {
         return Arrays.copyOf(newPrimes, primesCount);
     }
     
-    public static void generationEratosthenesInterval(long[] array, int arrayStart, long m, long n, long[] prime, int length){
+    /**
+     * Esta función es una versión sobrecargada de las función anterior.
+     * En vez de devolver un array, almacena en el array array[] los valores
+     * pertinentes empezando a guardarlos en el índice arrayStart.
+     * 
+     * @param array
+     * @param arrayStart
+     * @param m
+     * @param n
+     * @param prime
+     * @param length 
+     */
+    public static void eratosthenesInterval(long[] array, int arrayStart, long m, long n, long[] prime, int length){
         
         m+=m%2==0?1:0;
         n-=n%2==0?1:0;
@@ -349,7 +400,15 @@ public class TFG {
         } 
     }
     
-    public static void generationEratosthenes(long[] array, int n){
+    /**
+     * Esta función es una versión sobrecargada de las función anterior.
+     * En vez de alamacenar devolver un array, almacena los valores calculados 
+     * en el array array[] que se pasa como parámetro.
+     * 
+     * @param array
+     * @param n 
+     */
+    public static void eratosthenes(long[] array, int n){
         int stop=(n-1)/2;
 
         BitSet isMult = new BitSet(stop+1);
@@ -376,7 +435,7 @@ public class TFG {
      * cuadrada de un número entero x.
      * De forma análoga se calcula la raíz cúbica. */
     public static long intSqrt(long x){
-        long x0=x/2; //Es mejor 2^[log_2(n)/2+1]
+        long x0=x/2; //Es mejor aprox. inicial 2^[log_2(n)/2+1]
         long x1=(x0+x/x0)/2;
         while(x1<x0){
             x0=x1;
@@ -394,5 +453,23 @@ public class TFG {
             x1=(2*x0+x/(x0*x0))/3;
         }
         return x0;
+    }
+    
+    public static String timeFormat(long ms){
+        
+        int m,h,s=(int)ms/1000;
+        if(s>=60) {
+            m = (int)s/60;
+            s%=60;
+        } else return "(tiempo: "+s+"s)";
+        
+        if(m>=60){
+            h=m/60;
+            m%=60;
+            return "(tiempo: "+h+"h, "+m+"m, "+s+"s)";
+        }
+        
+        return "(tiempo: "+m+"m, "+s+"s)";
+        
     }
 }
